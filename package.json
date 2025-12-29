@@ -1,4 +1,5 @@
 {
+  "license": "MIT",
   "name": "dialogger",
   "version": "0.0.1",
   "description": "A simple AI dialogue app",
@@ -13,18 +14,29 @@
     "postinstall": "quasar prepare"
   },
   "dependencies": {
-    "vue-i18n": "^11.0.0",
-    "pinia": "^3.0.1",
+    "@google/generative-ai": "^0.24.1",
     "@quasar/extras": "^1.16.4",
+    "openai": "^6.15.0",
+    "pinia": "^3.0.1",
     "quasar": "^2.16.0",
+    "register-service-worker": "^1.7.2",
     "vue": "^3.5.22",
-    "vue-router": "^4.0.0"
+    "vue-i18n": "^11.0.0",
+    "vue-router": "^4.0.0",
+    "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
     "@intlify/unplugin-vue-i18n": "^4.0.0",
-    "@quasar/app-vite": "^2.1.0",
+    "@quasar/app-vite": "^2.4.0",
     "autoprefixer": "^10.4.2",
-    "postcss": "^8.4.14"
+    "postcss": "^8.4.14",
+    "workbox-build": "^7.4.0",
+    "workbox-cacheable-response": "^7.4.0",
+    "workbox-core": "^7.4.0",
+    "workbox-expiration": "^7.4.0",
+    "workbox-precaching": "^7.4.0",
+    "workbox-routing": "^7.4.0",
+    "workbox-strategies": "^7.4.0"
   },
   "engines": {
     "node": "^28 || ^26 || ^24 || ^22 || ^20",

@@ -1,0 +1,57 @@
+// --- Ключевые кадры (Keyframes) ---
+
+@keyframes shakeY {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-6px); }
+  75% { transform: translateY(4px); }
+}
+
+@keyframes rubber {
+  0% { transform: scale3d(1, 1, 1); }
+  30% { transform: scale3d(1.15, 0.85, 1); }
+  50% { transform: scale3d(0.95, 1.05, 1); }
+  100% { transform: scale3d(1, 1, 1); }
+}
+
+@keyframes pop-up {
+  0% { transform: scale(0.9) translateY(20px); opacity: 0; }
+  100% { transform: scale(1.1) translateY(0); opacity: 1; }
+}
+
+// --- Классы анимаций ---
+
+.anim-shake-y { animation: shakeY 0.4s both; }
+.anim-rubber { animation: rubber 0.4s linear; }
+
+// Эффект взрыва при сбросе
+.anim-explode {
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.5s ease-in;
+  &:nth-child(even) { transform: translate(80px, -150px) rotate(30deg) scale(0); }
+  &:nth-child(odd) { transform: translate(-80px, -150px) rotate(-30deg) scale(0); }
+}
+
+// --- Анимации переходов Vue (Transitions) ---
+
+// Перемещение слов в группе
+.words-move { 
+  transition: transform 0.4s cubic-bezier(0.2, 1, 0.2, 1); 
+}
+
+// Плавное исчезновение при удалении
+.words-leave-active {
+  position: absolute; // Чтобы не ломать поток
+  transition: opacity 0.2s ease;
+  opacity: 0;
+}
+
+// Анимация "вылета" фантома
+.phantom-fly-enter-active { 
+  animation: pop-up 0.25s cubic-bezier(0.2, 1, 0.3, 1.2); 
+}
+.phantom-fly-leave-active { 
+  transition: all 0.2s ease-in; 
+  opacity: 0; 
+  transform: scale(0.5) translateY(20px); 
+}

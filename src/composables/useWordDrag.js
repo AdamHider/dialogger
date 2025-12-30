@@ -1,89 +1,76 @@
-// composables/useWordDrag.js
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 
 export function useWordDrag(modelValue, { onUpdate, onFormChange, onDropSuccess }) {
   const isDragging = ref(false)
   const draggedIdx = ref(null)
   const isOverTrash = ref(false)
-  
-  const mousePos = ref({ x: 0, y: 0 })
-  const startPos = ref({ x: 0, y: 0 })
-  const offsetPos = ref({ x: 0, y: 0 })
-  
-  // Плавное смещение сенсора
-  const TARGET_SENSOR_OFFSET = 50 
   const currentSensorOffset = ref(0)
-  
+
+  const pos = ref({ current: { x: 0, y: 0 }, start: { x: 0, y: 0 }, offset: { x: 0, y: 0 } })
+
   let lastSwapTime = 0
   let longPressTimer = null
 
+  // --- Computed ---
   const phantomStyle = computed(() => ({
-    left: `${mousePos.value.x - offsetPos.value.x}px`,
-    // Фантом плавно поднимается при активации драга
-    top: `${mousePos.value.y - offsetPos.value.y - currentSensorOffset.value}px`,
+    left: `${pos.value.current.x - pos.value.offset.x}px`,
+    top: `${pos.value.current.y - pos.value.offset.y - currentSensorOffset.value}px`,
     pointerEvents: 'none',
-    transition: isDragging.value ? 'none' : 'top 0.2s ease-out, transform 0.2s ease-out'
+    transition: isDragging.value ? 'none' : 'all 0.2s ease-out'
   }))
 
-  const move = (me) => {
-    mousePos.value = { x: me.clientX, y: me.clientY }
-    
+  // --- Helpers ---
+  const updateWords = (newWords) => onUpdate([...newWords])
+
+  // --- Core Methods ---
+  const move = (e) => {
+    pos.value.current = { x: e.clientX, y: e.clientY }
+
     if (!isDragging.value) {
-      const dist = Math.hypot(me.clientX - startPos.value.x, me.clientY - startPos.value.y)
-      if (dist > 5) {
-        clearTimeout(longPressTimer)
-        isDragging.value = true
-        currentSensorOffset.value = TARGET_SENSOR_OFFSET // Подлёт вверх
-      }
+      const dist = Math.hypot(e.clientX - pos.value.start.x, e.clientY - pos.value.start.y)
+      if (dist > 5) activateDrag()
       return
     }
 
-    // ВАЖНО: Единая точка сканирования для слов и корзины
-    const scanY = me.clientY - currentSensorOffset.value
+    const scanY = e.clientY - currentSensorOffset.value
+    checkTrash(e.clientX, scanY)
+    if (!isOverTrash.value) handleSwapping(e.clientX, scanY)
+  }
 
-    // Проверка корзины с учетом смещенного сенсора
-    const trashEl = document.getElementById('trash-bin')
-    if (trashEl) {
-      const rect = trashEl.getBoundingClientRect()
-      isOverTrash.value = me.clientX >= rect.left && me.clientX <= rect.right &&
-                          scanY >= rect.top && scanY <= rect.bottom
-    }
+  const activateDrag = () => {
+    clearTimeout(longPressTimer)
+    isDragging.value = true
+    currentSensorOffset.value = 25 // TARGET_SENSOR_OFFSET
+  }
 
-    if (isOverTrash.value) return
+  const checkTrash = (x, y) => {
+    const el = document.getElementById('trash-bin')
+    isOverTrash.value = el ? isInside(x, y, el.getBoundingClientRect()) : false
+  }
 
-    // Геометрический поиск цели
-    const wrappers = document.querySelectorAll('.word-wrapper')
-    let foundIdx = null
+  const handleSwapping = (x, y) => {
+    const foundIdx = getWordIndexAt(x, y)
+    const now = Date.now()
 
-    for (const el of wrappers) {
-      const rect = el.getBoundingClientRect()
-      if (me.clientX >= rect.left && me.clientX <= rect.right &&
-          scanY >= rect.top && scanY <= rect.bottom) {
-        foundIdx = parseInt(el.getAttribute('data-index'))
-        break
-      }
-    }
+    if (foundIdx !== null && foundIdx !== draggedIdx.value && now - lastSwapTime > 150) {
+      const words = [...modelValue.value]
+      const [moved] = words.splice(draggedIdx.value, 1)
+      words.splice(foundIdx, 0, moved)
 
-    if (foundIdx !== null && foundIdx !== draggedIdx.value) {
-      const now = Date.now()
-      if (now - lastSwapTime > 150) {
-        const words = [...modelValue.value]
-        const [moved] = words.splice(draggedIdx.value, 1)
-        words.splice(foundIdx, 0, moved)
-        onUpdate(words)
-        draggedIdx.value = foundIdx
-        lastSwapTime = now
-      }
+      updateWords(words)
+      draggedIdx.value = foundIdx
+      lastSwapTime = now
     }
   }
 
   const stop = () => {
     clearTimeout(longPressTimer)
+
     if (isDragging.value) {
       if (isOverTrash.value) {
         const words = [...modelValue.value]
         words.splice(draggedIdx.value, 1)
-        onUpdate(words)
+        updateWords(words)
         navigator.vibrate?.(20)
       } else {
         onDropSuccess?.(modelValue.value[draggedIdx.value]?.id)
@@ -92,9 +79,13 @@ export function useWordDrag(modelValue, { onUpdate, onFormChange, onDropSuccess 
       onFormChange?.(draggedIdx.value)
     }
 
+    cleanup()
+  }
+
+  const cleanup = () => {
     isDragging.value = false
     isOverTrash.value = false
-    currentSensorOffset.value = 0 // Возврат на место
+    currentSensorOffset.value = 0
     setTimeout(() => { draggedIdx.value = null }, 200)
     window.removeEventListener('pointermove', move)
     window.removeEventListener('pointerup', stop)
@@ -102,25 +93,25 @@ export function useWordDrag(modelValue, { onUpdate, onFormChange, onDropSuccess 
 
   const onPointerDown = (e, index) => {
     if (modelValue.value[index].static) return
-    
+
     const rect = e.currentTarget.getBoundingClientRect()
-    offsetPos.value = { x: e.clientX - rect.left, y: e.clientY - rect.top }
-    mousePos.value = { x: e.clientX, y: e.clientY }
-    startPos.value = { x: e.clientX, y: e.clientY }
+    pos.value.start = { x: e.clientX, y: e.clientY }
+    pos.value.current = { x: e.clientX, y: e.clientY }
+    pos.value.offset = { x: e.clientX - rect.left, y: e.clientY - rect.top }
     draggedIdx.value = index
-    currentSensorOffset.value = 0 // Сначала под пальцем
 
-    longPressTimer = setTimeout(() => {
-      if (!isDragging.value) { 
-        isDragging.value = true
-        currentSensorOffset.value = TARGET_SENSOR_OFFSET
-        navigator.vibrate?.(15) 
-      }
-    }, 150)
-
+    longPressTimer = setTimeout(activateDrag, 150)
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', stop)
   }
+  // Проверка: находится ли точка внутри прямоугольника
+  const isInside = (x, y, rect) =>
+    x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
 
+  // Поиск индекса слова под координатами
+  const getWordIndexAt = (x, y) => {
+    const el = document.elementFromPoint(x, y)?.closest('.word-wrapper')
+    return el ? parseInt(el.getAttribute('data-index')) : null
+  }
   return { isDragging, draggedIdx, isOverTrash, phantomStyle, onPointerDown }
 }

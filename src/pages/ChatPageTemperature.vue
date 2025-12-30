@@ -77,39 +77,55 @@ const negativeReactions = ["Почти, но не совсем. Попробуй
 
 const scenario = [
   {
-    botSay: "Привет! Давай начнем с простого согласия. Собери: 'I really love pizza.'",
-    expected: "Yes, sure. Why not?",
-    hint: "Сначала подтверждение 'Yes', затем 'sure' и вопрос.",
+    botSay: "Привет! Давай начнем с эмоций. Собери: 'I love pizza.'",
+    expected: "I love pizza.",
+    hint: "Если видишь фиолетовый пилл, кликни по нему, чтобы сменить 'hate' на 'love'.",
     tokens: [
-    { id: 1, text: 'I', type: 'standard' },
-    { id: 2, text: 'really', type: 'mystery', hidden: true }, // Скрытое слово
-    { id: 3, text: 'love', original: 'love', opposite: 'hate', type: 'mirror' }, // Зеркальное
-    { id: 4, text: 'pizza', forms: ['pizza', 'pizzas', 'PIZZA!'], type: 'form' }, // Смена форм
-    { id: 5, text: '.', static: true } // Пунктуация
+      { id: 1, text: 'I', type: 'standard' },
+      // Mirror: обучаем менять негатив на позитив
+      { id: 2, text: 'hate', original: 'love', opposite: 'hate', type: 'mirror' }, 
+      { id: 3, text: 'pizza', type: 'standard' },
+      { id: 4, text: '.', static: true }
     ]
   },
   {
-    botSay: "Good job! Теперь давай скажем, чем мы тут занимаемся. 'I am learning code.'",
-    expected: "I am learning code.",
-    hint: "Используй форму глагола 'to be' для первого лица (I am).",
+    botSay: "Хорошо! А теперь давай уточним количество. Собери: 'I have three pizzas.'",
+    expected: "I have three pizzas.",
+    hint: "Не забудь изменить форму слова 'pizza' на множественное число.",
     tokens: [
-      { id: 8, text: 'I' },
-      { id: 9, text: 'is', forms: ['is', 'am', 'are'] },
-      { id: 10, text: 'learning' },
-      { id: 11, text: 'code' },
-      { id: 12, text: '.', static: true }
+      { id: 5, text: 'I', type: 'standard' },
+      { id: 6, text: 'have', type: 'standard' },
+      { id: 7, text: 'three', type: 'standard' },
+      // Form: тренируем окончание -s
+      { id: 8, text: 'pizza', forms: ['pizza', 'pizzas'], type: 'form' }, 
+      { id: 9, text: '.', static: true }
     ]
   },
   {
-    botSay: "Отлично. А теперь немного экспрессии! 'This app is amazing!'",
-    expected: "This app is amazing!",
-    hint: "Помни, что 'amazing' — это самая сильная форма похвалы здесь.",
+    botSay: "Теперь добавим отрицание. Собери: 'I do not like cold days.'",
+    expected: "I do not like cold days.",
+    hint: "Используй зеркальный пилл для отрицания и подбери нужную форму погоды.",
     tokens: [
-      { id: 13, text: 'This' },
-      { id: 14, text: 'app' },
-      { id: 15, text: 'is' },
-      { id: 16, text: 'amazing', forms: ['good', 'cool', 'amazing'] },
-      { id: 17, text: '!', static: true }
+      { id: 10, text: 'I', type: 'standard' },
+      // Mirror: меняем утверждение на отрицание
+      { id: 11, text: 'like', original: 'like', opposite: 'do not like', type: 'mirror' },
+      // Form: выбираем холодную погоду
+      { id: 12, text: 'warm', forms: ['warm', 'hot', 'cold'], type: 'form' },
+      { id: 13, text: 'days', type: 'standard' },
+      { id: 14, text: '.', static: true }
+    ]
+  },
+  {
+    botSay: "И напоследок — вопрос и правильный глагол. Собери: 'Is this app cool?'",
+    expected: "Is this app cool?",
+    hint: "Поставь 'Is' в начало предложения и выбери позитивное прилагательное.",
+    tokens: [
+      // Form: тренируем выбор правильной формы To Be
+      { id: 15, text: 'am', forms: ['am', 'is', 'are'], type: 'form' },
+      { id: 16, text: 'this', type: 'standard' },
+      { id: 17, text: 'app', type: 'standard' },
+      { id: 18, text: 'bad', forms: ['bad', 'cool', 'amazing'], type: 'form' },
+      { id: 19, text: '?', static: true }
     ]
   }
 ]

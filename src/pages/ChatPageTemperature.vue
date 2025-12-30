@@ -1,6 +1,6 @@
 <template>
   <q-page class="column no-wrap bg-grey-2 overflow-hidden" :style="{ height: 'calc(100dvh - 48px)' }">
-    
+
     <div class="row items-center q-px-md q-py-sm bg-white shadow-1 z-top">
       <q-btn flat round dense icon="arrow_back" color="grey-7" />
       <q-avatar size="38px" class="q-ml-sm">
@@ -13,16 +13,16 @@
     </div>
 
     <div class="col relative-position">
-      <q-scroll-area 
-        ref="chatScroll" 
+      <q-scroll-area
+        ref="chatScroll"
         class="absolute-full"
         :content-style="{ minHeight: '100%', display: 'flex', flexDirection: 'column' }"
       >
         <div class="col-grow"></div>
 
         <div class="q-pa-md">
-          <div 
-            v-for="msg in history" :key="msg.id" 
+          <div
+            v-for="msg in history" :key="msg.id"
             :class="msg.sender === 'npc' ? 'row q-py-xs' : 'row justify-end q-py-xs'"
             class="animate-fade"
           >
@@ -51,8 +51,8 @@
       </q-scroll-area>
     </div>
 
-    <WordConstructor 
-      :modelValue="sessionWords" 
+    <WordConstructor
+      :modelValue="sessionWords"
       @update:modelValue="handleWordsUpdate"
       @submit="handleUserSubmit"
     />
@@ -77,17 +77,15 @@ const negativeReactions = ["Почти, но не совсем. Попробуй
 
 const scenario = [
   {
-    botSay: "Привет! Давай начнем с простого согласия. Собери: 'Yes, sure. Why not?'",
+    botSay: "Привет! Давай начнем с простого согласия. Собери: 'I really love pizza.'",
     expected: "Yes, sure. Why not?",
     hint: "Сначала подтверждение 'Yes', затем 'sure' и вопрос.",
     tokens: [
-      { id: 1, text: 'Yes', forms: ['Yes', 'Yeah'] },
-      { id: 2, text: ',', static: true },
-      { id: 3, text: 'sure' },
-      { id: 4, text: '.', static: true },
-      { id: 5, text: 'Why' },
-      { id: 6, text: 'not' },
-      { id: 7, text: '?', static: true }
+    { id: 1, text: 'I', type: 'standard' },
+    { id: 2, text: 'really', type: 'mystery', hidden: true }, // Скрытое слово
+    { id: 3, text: 'love', original: 'love', opposite: 'hate', type: 'mirror' }, // Зеркальное
+    { id: 4, text: 'pizza', forms: ['pizza', 'pizzas', 'PIZZA!'], type: 'form' }, // Смена форм
+    { id: 5, text: '.', static: true } // Пунктуация
     ]
   },
   {
@@ -140,7 +138,7 @@ const loadStep = (step) => {
   const tokensCopy = JSON.parse(JSON.stringify(step.tokens))
   const nonStatic = tokensCopy.filter(t => !t.static).sort(() => Math.random() - 0.5)
   let nsIdx = 0
-  
+
   sessionWords.value = tokensCopy.map(t => t.static ? t : nonStatic[nsIdx++])
 }
 
@@ -162,7 +160,7 @@ const handleUserSubmit = async () => {
   const backup = JSON.parse(JSON.stringify(sessionWords.value))
 
   history.value.push({ id: Date.now(), sender: 'user', text: phrase })
-  sessionWords.value = [] 
+  sessionWords.value = []
   scrollToBottom()
 
   isTyping.value = true
@@ -172,7 +170,7 @@ const handleUserSubmit = async () => {
   if (phrase.toLowerCase() === step.expected.toLowerCase()) {
     const reaction = positiveReactions[Math.floor(Math.random() * positiveReactions.length)]
     history.value.push({ id: Date.now(), sender: 'npc', text: reaction })
-    
+
     currentStep.value++
     errorCount.value = 0
 
@@ -186,7 +184,7 @@ const handleUserSubmit = async () => {
   } else {
     errorCount.value++
     let botText = negativeReactions[Math.floor(Math.random() * negativeReactions.length)]
-    
+
     if (errorCount.value >= 2 && step.hint) {
       botText = `Подсказка: ${step.hint}`
     }
@@ -194,7 +192,7 @@ const handleUserSubmit = async () => {
     history.value.push({ id: Date.now(), sender: 'npc', text: botText })
     sessionWords.value = backup // Возвращаем слова пользователю
   }
-  
+
   scrollToBottom()
 }
 
@@ -221,17 +219,17 @@ onMounted(() => {
   padding: 10px 16px; max-width: 85%; font-weight: 500; display: flex; align-items: center;
 }
 
-.cursor-blink { 
-  animation: blink 1s infinite; margin-left: 4px; 
-  border-left: 2px solid #1976d2; height: 1.2em; 
+.cursor-blink {
+  animation: blink 1s infinite; margin-left: 4px;
+  border-left: 2px solid #1976d2; height: 1.2em;
 }
 
 @keyframes blink { 50% { opacity: 0; } }
 
 .animate-fade { animation: fadeIn 0.4s ease-out; }
-@keyframes fadeIn { 
-  from { opacity: 0; transform: translateY(10px); } 
-  to { opacity: 1; transform: translateY(0); } 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .text-change-enter-active, .text-change-leave-active { transition: opacity 0.2s; }

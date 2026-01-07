@@ -92,7 +92,7 @@ export function useWordDrag(modelValue, { onUpdate, onFormChange, onDropSuccess 
   const activateDrag = () => {
     clearTimeout(longPressTimer)
     isDragging.value = true
-    currentSensorOffset.value = 25 
+    currentSensorOffset.value = 35 
   }
 
   const stop = () => {

@@ -25,8 +25,8 @@
               :data="word"
               :is-dragged="isDragging && draggedIdx === index"
               :is-merge-target="targetMergeIdx === index"
-              :is-connected-left="!isDragging && checkConnection(index, 'left')"
-              :is-connected-right="!isDragging && checkConnection(index, 'right')"
+              :is-connected-left="checkConnection(index, 'left')"
+              :is-connected-right="checkConnection(index, 'right')"
               :is-pulsing="pulsingId === word.id"
               :is-dropped="lastDroppedId === word.id"
               @down="onPointerDown($event, index)"
@@ -75,18 +75,17 @@ const pulsingId = ref(null)
 const lastDroppedId = ref(null)
 
 const checkConnection = (index, side) => {
+  const neighborIdx = side === 'left' ? index - 1 : index + 1
   const current = props.modelValue[index]
-  if (!current) return false
-  if (side === 'left' && index > 0) {
-    const prev = props.modelValue[index - 1]
-    return prev.rightConn !== null && prev.rightConn === current.leftConn
+  const neighbor = props.modelValue[neighborIdx]
+  if (!neighbor || (isDragging.value && (draggedIdx.value === index || draggedIdx.value === neighborIdx))) {
+    return false
   }
-  if (side === 'right' && index < props.modelValue.length - 1) {
-    const next = props.modelValue[index + 1]
-    return current.rightConn !== null && current.rightConn === next.leftConn
-  }
-  return false
+  return side === 'left' 
+    ? (neighbor.rightConn !== null && neighbor.rightConn === current.leftConn)
+    : (current.rightConn !== null && current.rightConn === neighbor.leftConn)
 }
+
 const handleWordAction = (idx) => {
   const words = JSON.parse(JSON.stringify(props.modelValue))
   const w = words[idx]
@@ -156,9 +155,6 @@ const resetConstructor = () => {
 </script>
 
 <style lang="scss" scoped>
-.wrap-gap {
-  gap: 4px; 
-}
 .word-wrapper {
   padding: 4px 0;
 }

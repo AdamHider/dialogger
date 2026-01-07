@@ -5,67 +5,99 @@ export function useWordDrag(modelValue, { onUpdate, onFormChange, onDropSuccess 
   const draggedIdx = ref(null)
   const isOverTrash = ref(false)
   const currentSensorOffset = ref(0)
+  const targetMergeIdx = ref(null)
 
-  const pos = ref({ current: { x: 0, y: 0 }, start: { x: 0, y: 0 }, offset: { x: 0, y: 0 } })
+  const pos = ref({ 
+    current: { x: 0, y: 0 }, 
+    start: { x: 0, y: 0 }, 
+    offset: { x: 0, y: 0 } 
+  })
 
   let lastSwapTime = 0
   let longPressTimer = null
+  let compatibilityTimer = null
 
-  // --- Computed ---
   const phantomStyle = computed(() => ({
     left: `${pos.value.current.x - pos.value.offset.x}px`,
     top: `${pos.value.current.y - pos.value.offset.y - currentSensorOffset.value}px`,
     pointerEvents: 'none',
-    transition: isDragging.value ? 'none' : 'all 0.2s ease-out'
+    transition: isDragging.value ? 'none' : 'all 0.2s ease-out',
+    zIndex: 9999
   }))
 
-  // --- Helpers ---
   const updateWords = (newWords) => onUpdate([...newWords])
-
-  // --- Core Methods ---
-  const move = (e) => {
-    pos.value.current = { x: e.clientX, y: e.clientY }
-
-    if (!isDragging.value) {
-      const dist = Math.hypot(e.clientX - pos.value.start.x, e.clientY - pos.value.start.y)
-      if (dist > 5) activateDrag()
-      return
-    }
-
-    const scanY = e.clientY - currentSensorOffset.value
-    checkTrash(e.clientX, scanY)
-    if (!isOverTrash.value) handleSwapping(e.clientX, scanY)
-  }
-
-  const activateDrag = () => {
-    clearTimeout(longPressTimer)
-    isDragging.value = true
-    currentSensorOffset.value = 25 // TARGET_SENSOR_OFFSET
-  }
 
   const checkTrash = (x, y) => {
     const el = document.getElementById('trash-bin')
     isOverTrash.value = el ? isInside(x, y, el.getBoundingClientRect()) : false
   }
 
-  const handleSwapping = (x, y) => {
+  const getWordIndexAt = (x, y) => {
+    const el = document.elementFromPoint(x, y)?.closest('.word-wrapper')
+    return el ? parseInt(el.getAttribute('data-index')) : null
+  }
+
+  const checkCompatibility = (dragged, target, isAfter) => {
+    if (!dragged || !target) return false
+    return isAfter 
+      ? (dragged.leftConn !== null && dragged.leftConn === target.rightConn)
+      : (dragged.rightConn !== null && dragged.rightConn === target.leftConn)
+  }
+
+  const move = (e) => {
+    pos.value.current = { x: e.clientX, y: e.clientY }
+    if (!isDragging.value) {
+      const dist = Math.hypot(e.clientX - pos.value.start.x, e.clientY - pos.value.start.y)
+      if (dist > 5) activateDrag()
+      return
+    }
+    const scanY = e.clientY - currentSensorOffset.value
+    checkTrash(e.clientX, scanY)
+    if (!isOverTrash.value) handleInteraction(e.clientX, scanY)
+  }
+
+  const handleInteraction = (x, y) => {
     const foundIdx = getWordIndexAt(x, y)
     const now = Date.now()
 
-    if (foundIdx !== null && foundIdx !== draggedIdx.value && now - lastSwapTime > 150) {
-      const words = [...modelValue.value]
-      const [moved] = words.splice(draggedIdx.value, 1)
-      words.splice(foundIdx, 0, moved)
+    if (foundIdx !== null && foundIdx !== draggedIdx.value) {
+      // ПРОВЕРКА ЗАДЕРЖКИ (Увеличил до 250мс для стабильности)
+      if (now - lastSwapTime > 250) { 
+        // 1. Сразу гасим все магнитные эффекты перед свопом
+        targetMergeIdx.value = null
+        clearTimeout(compatibilityTimer)
 
-      updateWords(words)
-      draggedIdx.value = foundIdx
-      lastSwapTime = now
+        // 2. Выполняем своп
+        const words = [...modelValue.value]
+        const [moved] = words.splice(draggedIdx.value, 1)
+        words.splice(foundIdx, 0, moved)
+
+        updateWords(words)
+        draggedIdx.value = foundIdx
+        lastSwapTime = now
+
+        // 3. Запускаем магнит только если рука замерла после свопа
+        compatibilityTimer = setTimeout(() => {
+          const isAfter = draggedIdx.value > foundIdx
+          const isComp = checkCompatibility(modelValue.value[draggedIdx.value], modelValue.value[foundIdx], isAfter)
+          if (isComp) targetMergeIdx.value = foundIdx
+        }, 400) // Увеличил паузу до 400мс
+      }
+    } else if (foundIdx === null) {
+      targetMergeIdx.value = null
+      clearTimeout(compatibilityTimer)
     }
+  }
+
+  const activateDrag = () => {
+    clearTimeout(longPressTimer)
+    isDragging.value = true
+    currentSensorOffset.value = 25 
   }
 
   const stop = () => {
     clearTimeout(longPressTimer)
-
+    clearTimeout(compatibilityTimer)
     if (isDragging.value) {
       if (isOverTrash.value) {
         const words = [...modelValue.value]
@@ -78,13 +110,13 @@ export function useWordDrag(modelValue, { onUpdate, onFormChange, onDropSuccess 
     } else if (draggedIdx.value !== null) {
       onFormChange?.(draggedIdx.value)
     }
-
     cleanup()
   }
 
   const cleanup = () => {
     isDragging.value = false
     isOverTrash.value = false
+    targetMergeIdx.value = null
     currentSensorOffset.value = 0
     setTimeout(() => { draggedIdx.value = null }, 200)
     window.removeEventListener('pointermove', move)
@@ -93,25 +125,17 @@ export function useWordDrag(modelValue, { onUpdate, onFormChange, onDropSuccess 
 
   const onPointerDown = (e, index) => {
     if (modelValue.value[index].static) return
-
     const rect = e.currentTarget.getBoundingClientRect()
     pos.value.start = { x: e.clientX, y: e.clientY }
     pos.value.current = { x: e.clientX, y: e.clientY }
     pos.value.offset = { x: e.clientX - rect.left, y: e.clientY - rect.top }
     draggedIdx.value = index
-
     longPressTimer = setTimeout(activateDrag, 150)
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', stop)
   }
-  // Проверка: находится ли точка внутри прямоугольника
-  const isInside = (x, y, rect) =>
-    x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
 
-  // Поиск индекса слова под координатами
-  const getWordIndexAt = (x, y) => {
-    const el = document.elementFromPoint(x, y)?.closest('.word-wrapper')
-    return el ? parseInt(el.getAttribute('data-index')) : null
-  }
-  return { isDragging, draggedIdx, isOverTrash, phantomStyle, onPointerDown }
+  const isInside = (x, y, rect) => x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
+
+  return { isDragging, draggedIdx, isOverTrash, targetMergeIdx, phantomStyle, onPointerDown }
 }

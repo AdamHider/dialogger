@@ -3,19 +3,10 @@ const routes = [
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', component: () => import('pages/IndexPage.vue') },
       {
         path: 'chat',
         component: () => import('pages/ChatPage.vue'),
-      },
-      {
-        path: 'cryptogram',
-        component: () => import('pages/CryptogramPage.vue'),
-      },
-      {
-        path: 'chat-temperature',
-        component: () => import('pages/ChatPageTemperature.vue'),
-      },
+      }
     ]
   },
 

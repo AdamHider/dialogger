@@ -1,17 +1,14 @@
 <template>
   <q-card square flat class="no-select">
     <q-card-section class="flex justify-between items-center q-px-md q-py-xs">
-      <div class="text-caption text-grey-6 uppercase">Составьте ответ</div>
+      <div class="text-caption text-grey-6 uppercase">Сборка цепи</div>
       <q-btn
-        flat
-        dense
-        color="grey-7"
-        icon="refresh"
+        flat dense color="grey-7" icon="refresh"
         :disable="resetsLeft <= 0 || !modelValue.length || isExploding"
         @click="resetConstructor"
       >
         <q-badge floating>{{ resetsLeft }}</q-badge>
-        <q-tooltip>Заново</q-tooltip>
+        <q-tooltip>Сбросить</q-tooltip>
       </q-btn>
     </q-card-section>
 
@@ -27,37 +24,40 @@
             <WordPill
               :data="word"
               :is-dragged="isDragging && draggedIdx === index"
-              :is-target="targetMergeIdx === index"
+              :is-merge-target="targetMergeIdx === index"
+              :is-connected-left="!isDragging && checkConnection(index, 'left')"
+              :is-connected-right="!isDragging && checkConnection(index, 'right')"
               :is-pulsing="pulsingId === word.id"
               :is-dropped="lastDroppedId === word.id"
               @down="onPointerDown($event, index)"
             />
           </div>
         </transition-group>
+
         <transition name="phantom-fly">
           <div v-if="isDragging && draggedIdx !== null"
-              class="fixed z-max pointer-events-none"
-              :style="phantomStyle">
-            <WordPill :data="modelValue[draggedIdx]" is-phantom />
+               class="fixed z-max pointer-events-none"
+               :style="phantomStyle">
+            <WordPill :data="modelValue[draggedIdx]" />
           </div>
         </transition>
       </div>
-
     </q-card-section>
+
     <q-card-actions class="q-pt-sm full-width">
       <transition name="fade-fast" mode="out-in">
         <div v-if="isDragging" id="trash-bin"
-              class="action-box flex flex-center full-width rounded-borders border-dashed transition-base"
-              :class="isOverTrash ? 'bg-red-1 text-red border-red' : 'bg-grey-2 text-grey-6'">
+             class="action-box flex flex-center full-width rounded-borders border-dashed transition-base"
+             :class="isOverTrash ? 'bg-red-1 text-red border-red' : 'bg-grey-2 text-grey-6'">
           <q-icon :name="isOverTrash ? 'delete_sweep' : 'delete_outline'" size="sm" />
         </div>
         <q-btn v-else unelevated color="primary"
                 class="action-box full-width text-weight-bolder"
-                label="ОТПРАВИТЬ"
+                label="ПРОВЕРИТЬ"
                 :disable="!modelValue?.length || isExploding"
                 @click="$emit('submit')" />
       </transition>
-      </q-card-actions>
+    </q-card-actions>
   </q-card>
 </template>
 
@@ -74,24 +74,50 @@ const isExploding = ref(false)
 const pulsingId = ref(null)
 const lastDroppedId = ref(null)
 
+const checkConnection = (index, side) => {
+  const current = props.modelValue[index]
+  if (!current) return false
+  if (side === 'left' && index > 0) {
+    const prev = props.modelValue[index - 1]
+    return prev.rightConn !== null && prev.rightConn === current.leftConn
+  }
+  if (side === 'right' && index < props.modelValue.length - 1) {
+    const next = props.modelValue[index + 1]
+    return current.rightConn !== null && current.rightConn === next.leftConn
+  }
+  return false
+}
 const handleWordAction = (idx) => {
   const words = JSON.parse(JSON.stringify(props.modelValue))
   const w = words[idx]
   let changed = false
-  if (w.type === 'splitter' && w.originalParts) {
-    const restored = w.originalParts.map(p => ({ ...p, id: performance.now() + Math.random() }))
-    words.splice(idx, 1, ...restored)
+  if (w.type === 'mirror') {
+    w.text = w.text === w.original ? w.opposite : w.original
+    const temp = w.leftConn
+    w.leftConn = w.rightConn
+    w.rightConn = temp
+    
     changed = true
-  }
-  else if (w.forms || w.type === 'mirror') {
-    if (w.type === 'mirror') {
-      w.text = w.text === w.original ? w.opposite : w.original
-    } else {
-      const cur = w.forms.indexOf(w.text)
-      w.text = w.forms[(cur + 1) % w.forms.length]
+  } 
+  else if (w.forms) {
+    const curIdx = w.forms.indexOf(w.text)
+    const nextIdx = (curIdx + 1) % w.forms.length
+    w.text = w.forms[nextIdx]
+    if (w.connCycle && w.connCycle[nextIdx]) {
+      const cycleData = w.connCycle[nextIdx]
+      if (Array.isArray(cycleData)) {
+        w.leftConn = cycleData[0]
+        w.rightConn = cycleData[1]
+      } else if (typeof cycleData === 'object') {
+        w.leftConn = cycleData.l
+        w.rightConn = cycleData.r
+      } else {
+        w.rightConn = cycleData
+      }
     }
     changed = true
   }
+  // 3. Mystery (Раскрытие)
   else if (w.type === 'mystery' && w.hidden) {
     w.hidden = false
     changed = true
@@ -131,21 +157,21 @@ const resetConstructor = () => {
 
 <style lang="scss" scoped>
 .wrap-gap {
-  gap: 8px;
+  gap: 4px; 
+}
+.word-wrapper {
+  padding: 4px 0;
 }
 .action-box {
   height: 52px;
   border-radius: 12px;
 }
-
 .border-dashed {
   border: 2px dashed #ccc;
   &.border-red { border-color: $red; color: $red; }
 }
-
 .no-select {
   user-select: none;
-  -webkit-user-select: none;
   touch-action: none;
 }
 </style>

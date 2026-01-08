@@ -2,7 +2,7 @@
   <div
     class="word-pill transition-base shadow-sm"
     :class="[
-      pillStyles.theme, 
+      pillStyles.theme,
       stateClasses,
       clickClasses,
       { 'is-merge-target': isMergeTarget },
@@ -12,10 +12,10 @@
     @pointerdown="$emit('down', $event)"
   >
     <div v-if="data.leftConn !== null" class="port port-l" :class="{ 'is-connected': isConnectedLeft }">
-      <div 
-        v-for="idx in getSegments(data.leftConn)" 
-        :key="idx" 
-        class="segment" 
+      <div
+        v-for="idx in getSegments(data.leftConn)"
+        :key="idx"
+        class="segment"
         :style="getSegmentStyle(data.leftConn, isConnectedLeft)"
       ></div>
     </div>
@@ -27,14 +27,14 @@
     </div>
 
     <div v-if="data.rightConn !== null" class="port port-r" :class="{ 'is-connected': isConnectedRight }">
-      <div 
-        v-for="idx in getSegments(data.rightConn)" 
-        :key="idx" 
-        class="segment" 
+      <div
+        v-for="idx in getSegments(data.rightConn)"
+        :key="idx"
+        class="segment"
         :style="getSegmentStyle(data.rightConn, isConnectedRight)"
       ></div>
     </div>
-    
+
     <div v-if="data.type === 'splitter'" class="splitter-separator"></div>
   </div>
 </template>
@@ -68,7 +68,7 @@ const getSegmentStyle = (connType, isConnected) => {
   if (connType === 3) height = '4px'
   return {
     height,
-    background: isConnected ? '#0077ff' : '#d0d0d0',
+    background: isConnected ? '#5ace8d' : '#d0d0d0',
   }
 }
 
@@ -96,7 +96,7 @@ const stateClasses = computed(() => ({
 
 const clickClasses = computed(() => ({
   'anim-mirror': props.isPulsing && props.data.type === 'mirror',
-  'anim-transformer': props.isPulsing && props.data.type === 'transformer',
+  'anim-shake-y': props.isPulsing && props.data.type === 'transformer',
   'anim-shake-y': props.isPulsing
 }))
 </script>
@@ -112,7 +112,7 @@ $active-glow: #06b664;
   align-items: center;
   justify-content: center;
   background: white;
-  border: 2px solid #e0e0e0;
+  border: 1px solid #e0e0e0;
   border-radius: 10px;
   padding: 0 8px;
   margin: 0 4px;
@@ -148,13 +148,13 @@ $active-glow: #06b664;
   // --- СОСТОЯНИЯ СОЕДИНЕНИЯ ---
   &.is-connected-left {
     margin-left: 1px;
-    border-top-left-radius: 7px; 
+    border-top-left-radius: 7px;
     border-bottom-left-radius: 7px;
   }
 
   &.is-connected-right {
     margin-right: 1px;
-    border-top-right-radius: 7px; 
+    border-top-right-radius: 7px;
     border-bottom-right-radius: 7px;
   }
 

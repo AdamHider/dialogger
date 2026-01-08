@@ -7,10 +7,10 @@ export function useWordDrag(modelValue, { onUpdate, onFormChange, onDropSuccess 
   const currentSensorOffset = ref(0)
   const targetMergeIdx = ref(null)
 
-  const pos = ref({ 
-    current: { x: 0, y: 0 }, 
-    start: { x: 0, y: 0 }, 
-    offset: { x: 0, y: 0 } 
+  const pos = ref({
+    current: { x: 0, y: 0 },
+    start: { x: 0, y: 0 },
+    offset: { x: 0, y: 0 }
   })
 
   let lastSwapTime = 0
@@ -39,7 +39,7 @@ export function useWordDrag(modelValue, { onUpdate, onFormChange, onDropSuccess 
 
   const checkCompatibility = (dragged, target, isAfter) => {
     if (!dragged || !target) return false
-    return isAfter 
+    return isAfter
       ? (dragged.leftConn !== null && dragged.leftConn === target.rightConn)
       : (dragged.rightConn !== null && dragged.rightConn === target.leftConn)
   }
@@ -61,13 +61,10 @@ export function useWordDrag(modelValue, { onUpdate, onFormChange, onDropSuccess 
     const now = Date.now()
 
     if (foundIdx !== null && foundIdx !== draggedIdx.value) {
-      // ПРОВЕРКА ЗАДЕРЖКИ (Увеличил до 250мс для стабильности)
-      if (now - lastSwapTime > 250) { 
-        // 1. Сразу гасим все магнитные эффекты перед свопом
+      if (now - lastSwapTime > 250) {
         targetMergeIdx.value = null
         clearTimeout(compatibilityTimer)
 
-        // 2. Выполняем своп
         const words = [...modelValue.value]
         const [moved] = words.splice(draggedIdx.value, 1)
         words.splice(foundIdx, 0, moved)
@@ -76,12 +73,11 @@ export function useWordDrag(modelValue, { onUpdate, onFormChange, onDropSuccess 
         draggedIdx.value = foundIdx
         lastSwapTime = now
 
-        // 3. Запускаем магнит только если рука замерла после свопа
         compatibilityTimer = setTimeout(() => {
           const isAfter = draggedIdx.value > foundIdx
           const isComp = checkCompatibility(modelValue.value[draggedIdx.value], modelValue.value[foundIdx], isAfter)
           if (isComp) targetMergeIdx.value = foundIdx
-        }, 400) // Увеличил паузу до 400мс
+        }, 400)
       }
     } else if (foundIdx === null) {
       targetMergeIdx.value = null
@@ -92,7 +88,7 @@ export function useWordDrag(modelValue, { onUpdate, onFormChange, onDropSuccess 
   const activateDrag = () => {
     clearTimeout(longPressTimer)
     isDragging.value = true
-    currentSensorOffset.value = 35 
+    currentSensorOffset.value = 35
   }
 
   const stop = () => {
@@ -139,3 +135,4 @@ export function useWordDrag(modelValue, { onUpdate, onFormChange, onDropSuccess 
 
   return { isDragging, draggedIdx, isOverTrash, targetMergeIdx, phantomStyle, onPointerDown }
 }
+

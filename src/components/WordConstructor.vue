@@ -13,8 +13,8 @@
     </q-card-section>
 
     <q-card-section class="q-pa-md q-pb-none">
-      <div class="words-container row justify-center items-center relative-position">
-        <transition-group name="words" tag="div" class="row justify-center items-center wrap-gap">
+      <div class="words-container row justify-center items-center relative-position bg-grey-2 q-pa-sm">
+        <transition-group name="words" tag="div" class="row justify-center content-start wrap-gap"  :class="containerClass">
           <div v-for="(word, index) in modelValue"
                :key="word.id"
                :data-index="index"
@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import { ref, toRef } from 'vue'
+import { ref, computed, toRef } from 'vue'
 import WordPill from './WordPill.vue'
 import { useWordDrag } from '../composables/useWordDrag'
 
@@ -74,6 +74,19 @@ const isExploding = ref(false)
 const pulsingId = ref(null)
 const lastDroppedId = ref(null)
 
+const containerClass = computed(() => {
+  // Считаем общую длину всех слов + пробелы между ними
+  const totalChars = props.modelValue?.reduce((acc, word) => acc + (word.text?.length || 0), 0) || 0
+  const spacingOffset = (props.modelValue?.length || 0) * 2 // запас на отступы (gap)
+
+  const weight = totalChars + spacingOffset
+
+  if (weight <= 12) return 'h-1-row'
+  if (weight <= 25) return 'h-2-rows'
+  if (weight <= 50) return 'h-3-rows'
+  return 'h-4-rows'
+})
+
 const checkConnection = (index, side) => {
   const neighborIdx = side === 'left' ? index - 1 : index + 1
   const current = props.modelValue[index]
@@ -81,7 +94,7 @@ const checkConnection = (index, side) => {
   if (!neighbor || (isDragging.value && (draggedIdx.value === index || draggedIdx.value === neighborIdx))) {
     return false
   }
-  return side === 'left' 
+  return side === 'left'
     ? (neighbor.rightConn !== null && neighbor.rightConn === current.leftConn)
     : (current.rightConn !== null && current.rightConn === neighbor.leftConn)
 }
@@ -95,9 +108,9 @@ const handleWordAction = (idx) => {
     const temp = w.leftConn
     w.leftConn = w.rightConn
     w.rightConn = temp
-    
+
     changed = true
-  } 
+  }
   else if (w.forms) {
     const curIdx = w.forms.indexOf(w.text)
     const nextIdx = (curIdx + 1) % w.forms.length
@@ -155,6 +168,10 @@ const resetConstructor = () => {
 </script>
 
 <style lang="scss" scoped>
+.h-1-row { height: 60px; }
+.h-2-rows { height: 115px; }
+.h-3-rows { height: 145px; }
+.h-4-rows { height: 225px; }
 .word-wrapper {
   padding: 4px 0;
 }
